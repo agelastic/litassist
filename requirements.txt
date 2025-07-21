@@ -1,0 +1,10 @@
+click
+openai==0.28.1
+tiktoken
+tenacity>=8.2.3
+pinecone-client==2.2.4
+pypdf
+google-api-python-client
+pyyaml
+requests>=2.32.0
+reportlab>=4.1.0  # For PDF generation

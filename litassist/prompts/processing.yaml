@@ -1,0 +1,378 @@
+# Document processing and analysis prompt templates
+# Used for digest, draft, and extractfacts commands
+
+processing:
+  # Digest command prompts
+  # USED BY: digest.py digest() - summary and issues modes
+  # LOCATION: digest.py:68-80 (to be extracted)
+  digest:
+    summary_mode: |
+      Create a chronological summary of the document focusing on key events, dates, and parties. Structure as:
+      
+      **CHRONOLOGICAL SUMMARY**
+      
+      - **[Date]**: [Event description]
+      - **[Date]**: [Event description]
+      - **[Date]**: [Event description]
+      
+      {context_instruction}
+      Include all significant developments, procedural steps, and factual events in chronological order.
+
+    summary_mode_context_instruction_with_context: |
+      Focus your summary only on aspects related to: {context}
+    summary_mode_context_instruction_no_context: |
+      Cover all relevant topics in the document.
+
+    issues_mode: |
+      Identify and analyze legal issues present in the document. Structure as:
+      
+      **LEGAL ISSUES ANALYSIS**
+      
+      **Issue 1: [Issue Name]**
+      - **Description:** [What the issue involves]
+      - **Legal Framework:** [Relevant law/precedent]
+      - **Analysis:** [Discussion of the issue]
+      - **Significance:** [Why this matters]
+      
+      **Issue 2: [Issue Name]**
+      [Same structure...]
+      
+      {context_instruction}
+      Focus on substantive legal questions, procedural issues, and areas requiring legal analysis.
+
+    issues_mode_context_instruction_with_context: |
+      Focus your analysis only on issues related to: {context}
+    issues_mode_context_instruction_no_context: |
+      Cover all legal issues present in the document.
+    
+    system_prompt: |
+      Extract and organize information from this document. Focus on being comprehensive, accurate, and well-organized. Use clear paragraph structure and bullet points where appropriate. Maintain a neutral, analytical tone throughout.
+
+    chunk_analysis_summary: |
+      Analyze this document section (part {chunk_num} of {total_chunks}) for chronological summary.
+      
+      Extract key events, dates, and developments from this section that should be included in a comprehensive chronological summary.
+      
+      Focus on: {context}
+      
+      **IMPORTANT**: This is a partial analysis that will be consolidated with other sections.
+      Focus on identifying specific events and dates rather than providing a complete summary.
+      
+      Document section to analyze:
+      {documents}
+
+    chunk_analysis_issues: |
+      Analyze this document section (part {chunk_num} of {total_chunks}) for legal issues identification.
+      
+      Extract legal issues, problems, and concerns from this section that should be included in comprehensive legal issues analysis.
+      
+      Focus on: {context}
+      
+      **IMPORTANT**: This is a partial analysis that will be consolidated with other sections.
+      Focus on identifying specific legal issues rather than providing complete legal analysis.
+      
+      Document section to analyze:
+      {documents}
+
+    consolidation_summary: |
+      Consolidate the following partial chronological analyses into a unified chronological summary.
+      
+      Create a comprehensive chronological summary that integrates insights from all {total_chunks} document sections.
+      
+      **CHRONOLOGICAL SUMMARY**
+      
+      - **[Date]**: [Event description]
+      - **[Date]**: [Event description]
+      - **[Date]**: [Event description]
+      
+      Focus on: {context}
+      
+      Synthesize all chronological information, eliminate redundancy, and provide coherent timeline.
+      
+      Partial analyses from {total_chunks} document sections:
+      {chunk_analyses}
+      
+      Provide consolidated chronological summary that integrates all timeline information.
+
+    consolidation_issues: |
+      Consolidate the following partial legal issues analyses into unified legal issues analysis.
+      
+      Create comprehensive legal issues analysis that integrates insights from all {total_chunks} document sections.
+      
+      **LEGAL ISSUES ANALYSIS**
+      
+      **Issue 1: [Issue Name]**
+      - **Description:** [What the issue involves]
+      - **Legal Framework:** [Relevant law/precedent]
+      - **Analysis:** [Discussion of the issue]
+      - **Significance:** [Why this matters]
+      
+      **Issue 2: [Issue Name]**
+      [Same structure...]
+      
+      Focus on: {context}
+      
+      Synthesize all legal issues, eliminate redundancy, and provide coherent analysis.
+      
+      Partial analyses from {total_chunks} document sections:
+      {chunk_analyses}
+      
+      Provide consolidated legal issues analysis that integrates all identified problems and concerns.
+  
+  # Draft command prompts
+  # USED BY: draft.py draft() - system and user prompts
+  # LOCATION: draft.py:203-215 (to be extracted)
+  draft:
+    system_prompt_base: |
+      You are a senior Australian barrister with expertise in drafting high-quality legal documents. Create professional, well-structured documents that comply with Australian court rules and legal conventions.
+      
+      FUNDAMENTAL RULE: You must NEVER invent, create, or assume any factual information not explicitly provided in the source documents. Use placeholders like [TO BE PROVIDED] for any missing information. This is critical for legal accuracy and professional liability.
+    
+    context_case_facts_and_strategies: " You have been provided with structured case facts and legal strategies from brainstorming. Use the case facts as the factual foundation and consider the strategies when developing your arguments, particularly any marked as 'most likely to succeed'."
+    
+    context_case_facts_only: " You have been provided with structured case facts. Use these as the factual foundation for your draft."
+    
+    context_strategies_only: " You have been provided with legal strategies from brainstorming. Consider these strategies, particularly any marked as 'most likely to succeed'."
+    
+    general_instructions: |
+      Be thorough but concise. Focus on legal accuracy, relevant precedents, and clear organization. Use section headings, numbered paragraphs, and proper legal citation format. Maintain internal consistency throughout and ensure all claims are supported by the provided context.
+      
+      CRITICAL FACTUAL ACCURACY REQUIREMENTS:
+      - NEVER invent or assume facts not explicitly provided in the source documents
+      - NEVER create specific details like ages, dates, addresses, account numbers, or document references
+      - For ANY missing information, use clear placeholders:
+        * Ages: [AGE TO BE PROVIDED]
+        * Addresses: [ADDRESS TO BE CONFIRMED] 
+        * Dates not in source: [DATE TO BE CONFIRMED]
+        * Account/reference numbers: [ACCOUNT NUMBER - CLIENT TO PROVIDE]
+        * Document exhibits: [EXHIBIT A], [EXHIBIT B] rather than specific numbering
+        * Names/details not provided: [TO BE PROVIDED]
+      - Only use facts that appear verbatim in the provided context
+      - If a standard legal document field requires information not provided, mark it clearly for client completion
+      - It is better to produce an incomplete draft with clear placeholders than to invent plausible details
+    
+    context_aware_prompt: |
+      Context from case analysis:
+      {context}
+      
+      Draft a {document_type} that incorporates the strategic direction and legal arguments identified above. Ensure the document is:
+      - Professionally formatted
+      - Legally sound
+      - Strategically aligned
+      - Court-rule compliant
+      - Evidence-based where applicable
+    
+    user_prompt_template: |
+      Draft a {document_type}: {user_request}
+  
+  # Multi-chunk extraction prompts
+  # USED BY: extractfacts.py extractfacts() - chunk processing
+  # LOCATION: extractfacts.py:99-113 (to be extracted)
+  extraction:
+    chunk_facts_prompt: |
+      From this excerpt (part {chunk_num} of {total_chunks}), extract any facts relevant to:
+      - Parties involved
+      - Background/context
+      - Key events with dates
+      - Legal issues raised
+      - Evidence mentioned
+      - Arguments made
+      - Procedural matters
+      - Jurisdictional details
+      - Applicable laws
+      - Client objectives
+      
+      Just extract the raw facts found in this excerpt:
+    
+    chunk_system_prompt: |
+      Extract facts from this document excerpt. Be comprehensive but only include information actually present in this excerpt.
+    
+    organize_facts_prompt: |
+      Organize the following extracted facts into these 10 headings:
+      
+      {format_instructions}
+      
+      Raw facts to organize:
+      {all_facts}
+      
+      Important: 
+      - Only include information that was actually in the document
+      - If information for a heading is not available, write "Not specified in the document"
+      - Maintain chronological order for events
+      - Be comprehensive but factual
+    
+    organize_system_prompt: |
+      Organize the extracted facts precisely under the requested headings. Ensure consistency and avoid duplication.
+  
+  # Counsel's Notes command prompts
+  # USED BY: counselnotes.py counselnotes() - strategic analysis and extraction modes
+  # LOCATION: counselnotes.py:119-127, 215-223
+  counselnotes:
+    system_prompt: |
+      You are an experienced Australian barrister preparing strategic counsel's notes for litigation.
+      Your analysis should be from an advocate's perspective, focusing on tactical opportunities,
+      risks, and strategic considerations. Consider Australian legal principles and precedents.
+      
+      Maintain professional objectivity while identifying strengths and weaknesses that could
+      impact case strategy. Focus on practical considerations for litigation management.
+
+    strategic_analysis: |
+      Analyze the following legal documents from a strategic advocate perspective.
+      
+      **STRATEGIC ANALYSIS FRAMEWORK:**
+      
+      **1. CASE OVERVIEW & POSITION**
+      - Overall case strength assessment
+      - Client's strategic position
+      - Key factual advantages/disadvantages
+      
+      **2. TACTICAL OPPORTUNITIES**
+      - Procedural advantages to exploit
+      - Evidence strengths to emphasize
+      - Opposing party vulnerabilities
+      - Settlement leverage points
+      
+      **3. RISK ASSESSMENT**
+      - Litigation risks and exposure
+      - Evidence gaps or weaknesses
+      - Potential adverse findings
+      - Cost-benefit considerations
+      
+      **4. STRATEGIC RECOMMENDATIONS**
+      - Recommended litigation approach
+      - Priority actions and next steps
+      - Resource allocation priorities
+      - Alternative dispute resolution considerations
+      
+      **5. CASE MANAGEMENT NOTES**
+      - Key deadlines and milestones
+      - Witness considerations
+      - Expert evidence requirements
+      - Discovery/disclosure strategy
+      
+      Documents to analyze:
+      {documents}
+      
+      Provide comprehensive strategic counsel's notes addressing each framework element.
+
+    chunk_analysis: |
+      Analyze this document section (part {chunk_num} of {total_chunks}) from a strategic advocate perspective.
+      
+      Extract key strategic insights, focusing on:
+      - Notable factual elements and evidence patterns
+      - Legal issues and strategic considerations specific to this section
+      - Tactical opportunities or risks identified
+      - Critical evidence strengths or weaknesses
+      - Any procedural or substantive concerns
+      
+      **IMPORTANT**: This is a partial analysis that will be consolidated with other sections.
+      Focus on identifying specific strategic elements rather than providing complete strategic framework.
+      Be comprehensive but avoid duplicating standard legal analysis - focus on advocate-specific insights.
+      
+      Document section to analyze:
+      {documents}
+
+    consolidation: |
+      Consolidate the following partial strategic analyses into comprehensive counsel's notes.
+      
+      Create a complete strategic analysis using the standard 5-section framework:
+      
+      **1. CASE OVERVIEW & POSITION**
+      **2. TACTICAL OPPORTUNITIES** 
+      **3. RISK ASSESSMENT**
+      **4. STRATEGIC RECOMMENDATIONS**
+      **5. CASE MANAGEMENT NOTES**
+      
+      Synthesize insights from all sections, eliminate redundancy, and provide coherent strategic guidance.
+      Focus on cross-document synthesis and comprehensive strategic assessment.
+      
+      Partial analyses from {total_chunks} document sections:
+      {chunk_analyses}
+      
+      Provide consolidated strategic counsel's notes that integrate all insights into a cohesive analysis.
+
+    extraction:
+      all: |
+        Extract comprehensive counsel's notes in structured JSON format from the following documents.
+        
+        Return ONLY a valid JSON object with this exact structure:
+        {{
+          "strategic_summary": "Brief overview of overall case position and key strategic considerations",
+          "key_citations": ["Case citation 1", "Case citation 2", "Legislative reference 1"],
+          "legal_principles": [
+            {{"principle": "Legal principle description", "authority": "Supporting case/legislation"}},
+            {{"principle": "Another principle", "authority": "Supporting authority"}}
+          ],
+          "tactical_checklist": [
+            "Immediate action item 1",
+            "Strategic consideration 2", 
+            "Procedural requirement 3"
+          ],
+          "risk_assessment": "Assessment of litigation risks, exposure, and mitigation strategies",
+          "recommendations": [
+            "Strategic recommendation 1",
+            "Tactical approach 2",
+            "Resource allocation 3"
+          ]
+        }}
+        
+        Documents to analyze:
+        {documents}
+
+      citations: |
+        Extract only case citations and legislative references in structured JSON format.
+        
+        Return ONLY a valid JSON object with this exact structure:
+        {{
+          "citations": [
+            "Case Name v Other Name [Year] Court Reference",
+            "Another Case (Year) Volume Law Report Page", 
+            "Legislation Name (Jurisdiction) section reference"
+          ]
+        }}
+        
+        Include all legal authorities mentioned in the documents, using proper Australian citation format.
+        
+        Documents to analyze:
+        {documents}
+
+      principles: |
+        Extract legal principles with their supporting authorities in structured JSON format.
+        
+        Return ONLY a valid JSON object with this exact structure:
+        {{
+          "principles": [
+            {{
+              "principle": "Clear statement of the legal principle or rule",
+              "authority": "Supporting case citation or legislation"
+            }},
+            {{
+              "principle": "Another legal principle",
+              "authority": "Supporting authority"
+            }}
+          ]
+        }}
+        
+        Focus on substantive legal principles that could impact litigation strategy.
+        
+        Documents to analyze:
+        {documents}
+
+      checklist: |
+        Create a practical tactical checklist in structured JSON format.
+        
+        Return ONLY a valid JSON object with this exact structure:
+        {{
+          "checklist": [
+            "Review and verify all witness statements for consistency",
+            "Prepare comprehensive discovery plan within 14 days",
+            "Assess prospects for summary judgment application",
+            "Consider mediation timing and strategy",
+            "Evaluate expert evidence requirements"
+          ]
+        }}
+        
+        Include specific, actionable items for case management and strategic implementation.
+        
+        Documents to analyze:
+        {documents}
