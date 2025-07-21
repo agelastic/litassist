@@ -1,0 +1,148 @@
+# Lookup command specific prompt templates
+# Used for case law research and citation analysis
+
+lookup:
+  # Research assistant system prompt
+  # USED BY: lookup.py lookup() - system prompt for jade.io research
+  # LOCATION: lookup.py:304-305 (to be extracted)
+  # research_assistant:
+  #   system_prompt: |
+  #     Australian law only. Cite sources. Provide well-structured, concise responses focused on Victorian or federal law.
+  
+  # Extraction mode system prompt
+  # USED BY: lookup.py lookup() - system prompt when --extract is used
+  extraction_system: |
+    You are a legal data extraction specialist. Your task is to extract specific information from legal sources and return it ONLY as a valid JSON object.
+    
+    CRITICAL: Return ONLY the JSON object. Do not include any explanatory text, analysis, or commentary before or after the JSON.
+  
+  # Extraction-specific instructions
+  # USED BY: lookup.py lookup() - when --extract option is used
+  # LOCATION: lookup.py:292-297 (to be extracted)
+  extraction_instructions:
+    citations: |
+      IMPORTANT: Return ONLY a JSON object. Do not include any text before or after the JSON.
+      
+      Return your response as a valid JSON object with the following structure:
+      {"citations": ["citation1", "citation2", "citation3"]}
+      
+      Include all case citations and legislation references found in the sources. Each citation should be a complete citation string as it appears in legal documents.
+      
+      Example of correct response:
+      {"citations": ["Smith v Jones [2020] HCA 1", "Competition and Consumer Act 2010 (Cth) s 18", "Brown v Wilson (2019) 123 CLR 456"]}
+    
+    principles: |
+      IMPORTANT: Return ONLY a JSON object. Do not include any text before or after the JSON.
+      
+      Return your response as a valid JSON object with the following structure:
+      {"principles": [{"principle": "statement of legal principle", "authority": "supporting case or legislation"}]}
+      
+      Include key legal rules and principles with their supporting authorities.
+      
+      Example of correct response:
+      {"principles": [{"principle": "A contract requires offer, acceptance, consideration and intention to create legal relations", "authority": "Carlill v Carbolic Smoke Ball Co [1893] 1 QB 256"}, {"principle": "Misleading or deceptive conduct in trade is prohibited", "authority": "Competition and Consumer Act 2010 (Cth) s 18"}]}
+    
+    checklist: |
+      IMPORTANT: Return ONLY a JSON object. Do not include any text before or after the JSON.
+      
+      Return your response as a valid JSON object with the following structure:
+      {"checklist": ["item1", "item2", "item3"]}
+      
+      Include actionable requirements, evidence needed, and steps to take.
+      
+      Example of correct response:
+      {"checklist": ["Obtain witness statements from all parties present", "File originating application within limitation period", "Serve documents according to court rules", "Prepare affidavit evidence supporting claims"]}
+  
+  # Comprehensive analysis requirements
+  # USED BY: lookup.py lookup() - when --comprehensive flag is used
+  # LOCATION: lookup.py:316-346 (to be extracted)
+  comprehensive_analysis:
+    requirements: |
+      CRITICAL FORMATTING REQUIREMENTS (MUST FOLLOW):
+      - Put TWO blank lines (press Enter twice) before EVERY header
+      - Put ONE blank line (press Enter once) after EVERY header  
+      - Put ONE blank line between paragraphs within sections
+      - Headers MUST start with ### followed by a space
+      
+      EXHAUSTIVE ANALYSIS REQUIREMENTS:
+      - Review ALL provided sources thoroughly (expect 20-40 sources)
+      - Identify primary and secondary authorities with hierarchy
+      - Cross-reference between sources for consistency/conflicts
+      - Include minority opinions and dissenting views where relevant
+      - Distinguish binding vs persuasive authorities by jurisdiction
+      - Analyze temporal evolution of legal principles
+      - Consider jurisdictional variations across Australian states/territories
+    
+    citation_requirements: |
+      COMPREHENSIVE CITATION REQUIREMENTS:
+      - Cite ALL relevant cases from the sources with parallel citations
+      - Reference specific paragraphs/sections when applicable
+      - Distinguish between ratio decidendi and obiter dicta
+      - Group citations by authority level (High Court -> Federal -> State)
+    
+    output_structure: |
+      EXHAUSTIVE OUTPUT STRUCTURE:
+      
+      ### Executive Summary
+      (2-3 well-formatted paragraphs with clear breaks between them)
+      
+      ### Comprehensive Legal Framework
+      (Multiple paragraphs with proper spacing, each covering distinct aspects)
+      
+      ### Authority Hierarchy Analysis
+      (Structured analysis with paragraph breaks between different authority levels)
+      
+      ### Detailed Case Analysis by Jurisdiction
+      (Clear separation between jurisdictions, with paragraph breaks within each)
+      
+      ### Synthesis and Conflicts Resolution
+      (Well-spaced paragraphs discussing different aspects of synthesis)
+      
+      ### Practical Application with Confidence Levels
+      (Distinct scenarios or applications, each in its own paragraph)
+      
+      ### Conclusion
+      (Final analysis in properly formatted paragraphs)
+      
+      FINAL CRITICAL REMINDER: 
+      - EVERY header (starting with ###) MUST have TWO blank lines before it
+      - EVERY header MUST have ONE blank line after it
+      - This is MANDATORY - not optional
+  
+  # Standard analysis instructions
+  # USED BY: lookup.py lookup() - standard mode
+  # LOCATION: lookup.py:344-345 (to be extracted)
+  standard_analysis:
+    instructions: |
+      CRITICAL FORMATTING REQUIREMENTS (MUST FOLLOW):
+      - Put TWO blank lines (press Enter twice) before EVERY header
+      - Put ONE blank line (press Enter once) after EVERY header
+      - Put ONE blank line between paragraphs within sections
+      
+      OUTPUT STRUCTURE (USE THESE EXACT HEADERS):
+      
+      
+      ### Executive Summary
+      
+      (Write 2-3 paragraphs here, with one blank line between each paragraph)
+      
+      
+      ### Analysis
+      
+      (Write multiple paragraphs examining the legal issues and case law, with one blank line between each paragraph)
+      
+      
+      ### Conclusion
+      
+      (Write 1-2 paragraphs with definitive conclusions, with one blank line between if using two paragraphs)
+      
+      CONTENT REQUIREMENTS:
+      Cite sources. Analyze the provided sources (typically 5) to provide comprehensive legal analysis. Cross-reference between sources where applicable. Each paragraph should contain a single coherent idea or point.
+  
+  # User prompt template
+  # USED BY: lookup.py lookup() - user prompt construction
+  # LOCATION: lookup.py:348-356 (to be extracted)
+  # standard_user_template: |
+  #   Question: {question}
+  #   Links:
+  #   {links}

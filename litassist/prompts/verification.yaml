@@ -1,0 +1,92 @@
+# Verification and self-critique prompt templates
+# Used for legal accuracy verification and citation validation across all commands
+
+verification:
+  # Self-critique verification prompt
+  # USED BY: llm.py LLMClient.verify() method - default verification for all commands
+  # LOCATION: llm.py:528-539
+  self_critique: |
+    CRITICAL INSTRUCTION: You MUST return the COMPLETE document with ALL original text.
+    DO NOT use ANY placeholders, summaries, or abbreviations like:
+    - "[Section reproduced in full...]"
+    - "[unchanged during verification]"
+    - "[no substantive changes]"
+    - "..." or any ellipsis
+
+    MANDATORY: Copy every single word from the original document exactly as written.
+    If a section needs no changes, copy it word-for-word in its entirety.
+
+    Example: If you see "## MOST LIKELY TO SUCCEED" followed by 5 paragraphs,
+    you MUST include all 5 paragraphs in full, not a placeholder.
+
+    Review the document above. Your review must identify and correct issues in two areas:
+    1.  **Accuracy**: Legal inaccuracies, incorrect citations, non-Australian English.
+    2.  **Logic**: Internal contradictions, flawed reasoning, or significant unstated assumptions.
+
+    Provide your review in two parts while PRESERVING ALL ORIGINAL CONTENT STRUCTURE including:
+    - ALL markdown headings at any level (##, ###, etc.)
+    - Special markers like "=== REASONING ==="
+    - Section numbering and formatting
+    - The COMPLETE document with ALL sections
+
+    Examples of headers to preserve: "## ORTHODOX STRATEGIES", "## UNORTHODOX STRATEGIES", 
+    "## MOST LIKELY TO SUCCEED", "### Executive Summary", etc.
+
+    Do not omit any sections. Return the ENTIRE document with corrections made inline.
+
+    Output exactly in this order:
+
+    ## Issues Found during Verification
+    1. Describe each accuracy (legal, citation, language) or logic (consistency, reasoning) issue you identify.
+       If there are no issues, write "No issues found."
+
+    ---
+    ## Verified and Corrected Document
+    START DIRECTLY with the actual document content (e.g., "## ORTHODOX STRATEGIES" or the document title).
+    NEVER include system instructions like "Australian law only" at the beginning.
+    
+    Return the COMPLETE full text with corrections made inline. All unchanged lines MUST be
+    reproduced verbatim exactly as they appear. Never use placeholders like "[unchanged]" or 
+    abbreviations. 
+    
+    For EVERY numbered strategy (1-10 in Orthodox/Unorthodox sections), add a comment at the end:
+    - If you made corrections: "(corrected: [brief description of changes])"
+    - If no corrections needed: "(unchanged during verification)"
+    
+    IMPORTANT: For analysis sections (like "MOST LIKELY TO SUCCEED" or "ANALYSIS OF SELECTED STRATEGIES"):
+    - Reproduce the FULL content without any abbreviation
+    - NEVER use "..." or placeholders to shorten content
+    - Add only ONE comment at the very end of the entire section
+    - Preserve ALL strategy analysis text exactly as written
+    
+    Examples:
+    - "(corrected: updated Bosanac citation to [2022] HCA 34)"
+    - "(corrected: changed 'license' to 'licence' throughout)"
+    - "(unchanged during verification)"
+    
+    The document MUST start with its actual content, not with any meta-instructions.
+
+  # Enhanced citation instructions for retry attempts
+  # USED BY: llm.py LLMClient.complete() method - when citation verification fails and retry is needed
+  # LOCATION: llm.py:431-440
+  citation_retry_instructions: |
+    IMPORTANT: Use only real, verifiable Australian cases that exist in Australian legal databases. Do not invent case names. If unsure about a citation, omit it rather than guess.
+
+  # Light verification - Australian English compliance only
+  # USED BY: llm.py LLMClient.verify_with_level() method - when level="light"
+  # LOCATION: llm.py:744-753
+  light_verification: |
+    Check only for Australian English spelling and terminology compliance.
+    Correct any non-Australian English spellings or terminology.
+
+  # Heavy verification - comprehensive legal accuracy
+  # USED BY: llm.py LLMClient.verify_with_level() method - when level="heavy"
+  # LOCATION: llm.py:758-767
+  heavy_verification: |
+    Provide comprehensive legal accuracy review: verify all citations, check legal reasoning, identify any errors in law or procedure, and ensure Australian English compliance.
+
+  # Standard verification system prompt
+  # USED BY: llm.py LLMClient.verify_with_level() method - system prompt for heavy verification
+  # LOCATION: llm.py:757-762
+  system_prompt: |
+    Australian law only. You are a senior solicitor with excellent knowledge of case and statute law. Thoroughly verify legal accuracy, citations, precedents, and reasoning.
