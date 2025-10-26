@@ -4,7 +4,6 @@ Basic tests for counselnotes command.
 Simplified test suite focusing on core functionality.
 """
 
-import json
 import tempfile
 import os
 from unittest.mock import Mock, patch
@@ -25,13 +24,13 @@ class TestCounselNotesBasic:
             "total_tokens": 1500,
         }
 
-    @patch("litassist.commands.counselnotes.read_document")
-    @patch("litassist.commands.counselnotes.LLMClientFactory")
-    @patch("litassist.commands.counselnotes.save_command_output")
-    @patch("litassist.commands.counselnotes.save_log")
-    @patch("litassist.commands.counselnotes.show_command_completion")
-    @patch("litassist.commands.counselnotes.PROMPTS")
-    @patch("litassist.commands.counselnotes.CONFIG")
+    @patch("litassist.commands.counselnotes.document_processor.read_document")
+    @patch("litassist.commands.counselnotes.core.LLMClientFactory")
+    @patch("litassist.commands.counselnotes.core.save_command_output")
+    @patch("litassist.commands.counselnotes.core.save_log")
+    @patch("litassist.commands.counselnotes.core.show_command_completion")
+    @patch("litassist.commands.counselnotes.analysis_processor.PROMPTS")
+    @patch("litassist.commands.counselnotes.document_processor.get_config")
     @patch("click.DateTime.convert")
     def test_basic_strategic_analysis(
         self,
@@ -47,7 +46,9 @@ class TestCounselNotesBasic:
         """Test basic strategic analysis mode."""
         # Setup mocks
         mock_datetime.return_value = "2025-01-07 13:51:00"
-        mock_config.max_chars = 10000  # Set a reasonable limit
+        mock_config_obj = Mock()
+        mock_config_obj.max_chars = 10000  # Set a reasonable limit
+        mock_config.return_value = mock_config_obj
         mock_read.return_value = "Sample legal document content"
         mock_client = Mock()
         mock_client.complete.return_value = (
@@ -74,19 +75,17 @@ class TestCounselNotesBasic:
         finally:
             os.unlink(temp_file)
 
-    @patch("litassist.commands.counselnotes.read_document")
-    @patch("litassist.commands.counselnotes.LLMClientFactory")
-    @patch("litassist.commands.counselnotes.save_command_output")
-    @patch("litassist.commands.counselnotes.save_log")
-    @patch("litassist.commands.counselnotes.show_command_completion")
-    @patch("litassist.commands.counselnotes.PROMPTS")
-    @patch("litassist.commands.counselnotes.CONFIG")
-    @patch("litassist.commands.counselnotes.process_extraction_response")
+    @patch("litassist.commands.counselnotes.document_processor.read_document")
+    @patch("litassist.commands.counselnotes.core.LLMClientFactory")
+    @patch("litassist.commands.counselnotes.core.save_command_output")
+    @patch("litassist.commands.counselnotes.core.save_log")
+    @patch("litassist.commands.counselnotes.core.show_command_completion")
+    @patch("litassist.commands.counselnotes.analysis_processor.PROMPTS")
+    @patch("litassist.commands.counselnotes.document_processor.get_config")
     @patch("click.DateTime.convert")
     def test_extraction_mode(
         self,
         mock_datetime,
-        mock_process_extraction,
         mock_config,
         mock_prompts,
         mock_completion,
@@ -98,23 +97,18 @@ class TestCounselNotesBasic:
         """Test extraction mode."""
         # Setup mocks
         mock_datetime.return_value = "2025-01-07 13:51:00"
-        mock_config.max_chars = 10000  # Set a reasonable limit
+        mock_config_obj = Mock()
+        mock_config_obj.max_chars = 10000  # Set a reasonable limit
+        mock_config.return_value = mock_config_obj
         mock_read.return_value = "Sample legal document content"
         mock_client = Mock()
 
-        # Return valid JSON
-        json_response = json.dumps({"citations": ["Test v Case [2023] HCA 1"]})
-        mock_client.complete.return_value = (json_response, self.mock_usage)
+        # Return formatted text directly (not JSON anymore)
+        formatted_response = "CITATIONS FOUND:\n• Test v Case [2023] HCA 1"
+        mock_client.complete.return_value = (formatted_response, self.mock_usage)
         mock_factory.for_command.return_value = mock_client
         mock_prompts.get.return_value = "Extraction prompt"
         mock_output.return_value = "output_file.txt"
-        
-        # Mock process_extraction_response
-        mock_process_extraction.return_value = (
-            "CITATIONS FOUND:\nTest v Case [2023] HCA 1",
-            {"citations": ["Test v Case [2023] HCA 1"]},
-            "test_citations.json"
-        )
 
         # Create temporary file
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
@@ -130,12 +124,9 @@ class TestCounselNotesBasic:
             # Basic assertions
             assert result.exit_code == 0
             mock_client.complete.assert_called_once()
-            mock_process_extraction.assert_called_once()
-            
-            # Verify process_extraction_response was called correctly
-            call_args = mock_process_extraction.call_args[0]
-            assert call_args[1] == "citations"  # extract_type
-            assert call_args[3] == "counselnotes"  # command
+
+            # Verify output was saved with formatted text
+            mock_output.assert_called_once()
         finally:
             os.unlink(temp_file)
 

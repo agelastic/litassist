@@ -9,25 +9,32 @@ from click.testing import CliRunner
 
 from litassist.commands.extractfacts import extractfacts
 
+
 class TestExtractFactsBasic:
     """Basic test suite for the extractfacts command."""
 
     def setup_method(self):
         self.runner = CliRunner()
         # Simulated token usage return from LLM
-        self.mock_usage = {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
+        self.mock_usage = {
+            "prompt_tokens": 10,
+            "completion_tokens": 5,
+            "total_tokens": 15,
+        }
 
-    @patch("litassist.commands.extractfacts.CONFIG")
-    @patch("litassist.commands.extractfacts.PROMPTS")
-    @patch("litassist.commands.extractfacts.show_command_completion")
-    @patch("litassist.commands.extractfacts.save_log")
-    @patch("litassist.commands.extractfacts.save_command_output")
-    @patch("litassist.commands.extractfacts.LLMClientFactory")
-    @patch("litassist.commands.extractfacts.create_reasoning_prompt")
-    @patch("litassist.commands.extractfacts.chunk_text")
-    @patch("litassist.commands.extractfacts.validate_file_size")
+    @patch("litassist.commands.extractfacts.document_reader.get_config")
+    @patch("litassist.commands.extractfacts.single_extractor.PROMPTS")
+    @patch("litassist.commands.extractfacts.core.show_command_completion")
+    @patch("litassist.commands.extractfacts.core.save_log")
+    @patch("litassist.commands.extractfacts.core.save_command_output")
+    @patch("litassist.commands.extractfacts.core.LLMClientFactory")
+    @patch("litassist.commands.extractfacts.single_extractor.create_reasoning_prompt")
+    @patch("litassist.commands.extractfacts.document_reader.chunk_text")
+    @patch("litassist.commands.extractfacts.document_reader.validate_file_size")
+    @patch("litassist.commands.extractfacts.core.verify_content_if_needed")
     def test_basic_extractfacts(
         self,
+        mock_verify_content,
         mock_validate,
         mock_chunk,
         mock_create_prompt,
@@ -46,14 +53,16 @@ class TestExtractFactsBasic:
         mock_prompts.get_format_template.return_value = "Format instructions"
         mock_prompts.get_system_prompt.return_value = "System prompt"
         mock_create_prompt.return_value = "Reasoned prompt"
-        mock_config.max_chars = 1000
+        mock_config_obj = Mock()
+        mock_config_obj.max_chars = 1000
+        mock_config.return_value = mock_config_obj
         # Patch LLM client
         mock_client = Mock()
         mock_client.complete.return_value = ("Extracted content", self.mock_usage)
-        # Simulate no corrections needed
-        mock_client.verify.return_value = ""
         mock_factory.for_command.return_value = mock_client
         mock_output.return_value = "output_file.txt"
+        # Mock verify_content_if_needed to return content unchanged
+        mock_verify_content.return_value = ("Extracted content", {})
 
         # Create a temporary input file using pytest's tmp_path fixture
         temp_file = tmp_path / "input.txt"
@@ -66,7 +75,8 @@ class TestExtractFactsBasic:
         assert result.exit_code == 0
         mock_factory.for_command.assert_called_once_with("extractfacts")
         mock_client.complete.assert_called_once()
-        mock_client.verify.assert_called_once_with("Extracted content")
+        # Verify that verify_content_if_needed was called instead of client.verify
+        mock_verify_content.assert_called_once()
         # Ensure output saving and completion display are invoked
         mock_output.assert_called_once()
         mock_log.assert_called_once()

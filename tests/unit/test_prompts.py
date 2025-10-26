@@ -8,7 +8,7 @@ commands fail appropriately when centralized prompts are unavailable.
 import pytest
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 from litassist.prompts import PromptManager, PROMPTS
 
@@ -19,7 +19,9 @@ class TestPromptManager:
     def test_template_loading(self):
         """Test that templates load correctly from YAML files."""
         # Use the global PROMPTS instance which should have loaded templates
-        templates = PROMPTS.list_templates()
+        # Access templates via the internal attribute after ensuring loaded
+        PROMPTS._ensure_loaded()
+        templates = PROMPTS.templates
 
         # Verify key template categories exist
         assert "base" in templates
@@ -45,8 +47,8 @@ class TestPromptManager:
 
         assert isinstance(system_prompt, str)
         assert len(system_prompt) > 0
-        # Should contain both Australian law base and command-specific content
-        assert "Australian" in system_prompt
+        # Should contain command-specific content (Australian law is added by LLM client)
+        assert "Extract factual information" in system_prompt or "heading" in system_prompt
 
     def test_get_format_template(self):
         """Test format template retrieval."""
@@ -59,23 +61,24 @@ class TestPromptManager:
         assert "Background" in format_template
 
     def test_template_composition(self):
-        """Test combining multiple templates."""
-        composed = PROMPTS.compose_prompt(
-            "base.australian_law",
-            # 'base.citation_standards'
-        )
+        """Test combining multiple templates using get()."""
+        # Test that we can get and combine templates manually
+        template1 = PROMPTS.get("base.australian_law")
+
+        # Manually compose (what compose_prompt used to do)
+        composed = "\n\n".join([template1])
 
         assert isinstance(composed, str)
         assert len(composed) > 0
-        # Should contain content from both templates
+        # Should contain content from template
         assert "Australian" in composed
 
     def test_template_with_parameters(self):
-        """Test template parameter substitution."""
+        """Test template parameter substitution using get()."""
         # This test assumes document templates support parameters
         try:
-            doc_template = PROMPTS.get_document_template(
-                "statement_of_claim",
+            doc_template = PROMPTS.get(
+                "documents.statement_of_claim",
                 court_name="Test Court",
                 file_number="123/2024",
                 plaintiff_name="John Doe",
@@ -156,8 +159,8 @@ class TestIntegrationWithCommands:
 
     def test_extractfacts_command_requires_prompts(self):
         """Test that extractfacts command requires centralized prompts."""
-        # Mock empty PROMPTS
-        with patch("litassist.commands.extractfacts.PROMPTS") as mock_prompts:
+        # Mock empty PROMPTS in the single_extractor module
+        with patch("litassist.commands.extractfacts.single_extractor.PROMPTS") as mock_prompts:
             mock_prompts.get_format_template.side_effect = KeyError(
                 "Template not found"
             )
@@ -177,7 +180,7 @@ class TestIntegrationWithCommands:
     def test_lookup_command_requires_prompts(self):
         """Test that lookup command requires centralized prompts."""
         # Mock empty PROMPTS
-        with patch("litassist.commands.lookup.PROMPTS") as mock_prompts:
+        with patch("litassist.commands.lookup.processors.PROMPTS") as mock_prompts:
             mock_prompts.get_system_prompt.side_effect = KeyError("Template not found")
 
             # Import the command function
@@ -242,9 +245,9 @@ class TestTemplateValidation:
             1 for heading in required_headings if heading.lower() in case_facts.lower()
         )
 
-        assert (
-            found_headings >= 7
-        ), f"Case facts template missing essential headings. Found {found_headings}/10"
+        assert found_headings >= 7, (
+            f"Case facts template missing essential headings. Found {found_headings}/10"
+        )
 
     def test_templates_are_strings(self):
         """Test that all loaded templates are valid strings."""
@@ -261,7 +264,8 @@ class TestTemplateValidation:
                         f"Template at {current_path} is not a string: {type(value)}"
                     )
 
-        templates = PROMPTS.list_templates()
+        PROMPTS._ensure_loaded()
+        templates = PROMPTS.templates
         check_dict_values(templates)
 
 

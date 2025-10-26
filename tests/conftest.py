@@ -11,7 +11,7 @@ from pathlib import Path
 import sys
 
 mock_config = Mock()
-mock_config.openai_api_key = "test-openai-key"
+mock_config.oa_key = "test-openai-key"
 mock_config.get_openai_api_key = Mock(return_value="test-openai-key")
 mock_config.get_jade_api_key = Mock(return_value="test-jade-key")
 mock_config.openrouter_api_key = "test-openrouter-key"
@@ -22,6 +22,10 @@ mock_config.pinecone_environment = "test-env"
 mock_config.pinecone_index = "test-index"
 mock_config.log_format = "json"
 mock_config.heartbeat_interval = 10
+mock_config.fetch_timeout = 10
+mock_config.max_fetch_time = 300
+mock_config.selenium_enabled = True
+mock_config.selenium_timeout_multiplier = 2
 
 # Replace the CONFIG in sys.modules before litassist is imported
 config_module = Mock()
@@ -34,20 +38,25 @@ sys.modules["litassist.config"] = config_module
 @pytest.fixture
 def mock_openai():
     """Mock OpenAI API responses."""
-    with patch("openai.Embedding.create") as mock_embed:
-        with patch("openai.ChatCompletion.create") as mock_chat:
-            # Mock embedding response
-            mock_embed.return_value = Mock(data=[Mock(embedding=[0.1] * 1536)])
+    with patch("openai.OpenAI") as mock_openai_class:
+        # Create mock client instance
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
 
-            # Mock chat completion response
-            mock_chat.return_value = Mock(
-                choices=[
-                    Mock(message=Mock(content="Test response"), finish_reason="stop")
-                ],
-                usage=Mock(total_tokens=100, prompt_tokens=50, completion_tokens=50),
-            )
+        # Mock embeddings.create and chat.completions.create
+        mock_embed = mock_client.embeddings.create
+        mock_chat = mock_client.chat.completions.create
 
-            yield mock_embed, mock_chat
+        # Mock embedding response
+        mock_embed.return_value = Mock(data=[Mock(embedding=[0.1] * 1536)])
+
+        # Mock chat completion response
+        mock_chat.return_value = Mock(
+            choices=[Mock(message=Mock(content="Test response"), finish_reason="stop")],
+            usage=Mock(total_tokens=100, prompt_tokens=50, completion_tokens=50),
+        )
+
+        yield mock_embed, mock_chat
 
 
 @pytest.fixture

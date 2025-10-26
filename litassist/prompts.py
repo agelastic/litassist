@@ -26,8 +26,14 @@ class PromptManager:
     def __init__(self):
         """Initialize the prompt manager with templates from YAML files."""
         self.prompts_dir = Path(__file__).parent / "prompts"
-        self.templates = self._load_templates()
-        self._templates_loaded = bool(self.templates)
+        self.templates = None  # Lazy load - don't load until actually needed
+        self._templates_loaded = False
+
+    def _ensure_loaded(self):
+        """Ensure templates are loaded when first accessed."""
+        if self.templates is None:
+            self.templates = self._load_templates()
+            self._templates_loaded = bool(self.templates)
 
     def _merge_dicts(self, a: dict, b: dict) -> dict:
         """
@@ -85,6 +91,9 @@ class PromptManager:
             KeyError: If the template is not found
             ValueError: If required template parameters are missing
         """
+        # Ensure templates are loaded on first access
+        self._ensure_loaded()
+        
         if not self._templates_loaded:
             raise KeyError(
                 f"Unable to retrieve template '{template_key}': no templates loaded"
@@ -120,23 +129,15 @@ class PromptManager:
             command: The command name (e.g., 'extractfacts', 'lookup')
 
         Returns:
-            The complete system prompt including Australian law requirements
+            The command-specific system prompt (Australian law is added by LLM client)
         """
         try:
-            # Get base Australian law requirement
-            base_prompt = self.get("base.australian_law")
-
-            # Get command-specific system prompt
+            # Get command-specific system prompt only
+            # Australian law requirements are automatically added by the LLM client
             command_prompt = self.get(f"commands.{command}.system")
-
-            # Combine them
-            return f"{base_prompt} {command_prompt}"
+            return command_prompt
         except KeyError:
-            # Fallback to just the command prompt if available
-            try:
-                return self.get(f"commands.{command}.system")
-            except KeyError:
-                raise KeyError(f"No system prompt found for command '{command}'")
+            raise KeyError(f"No system prompt found for command '{command}'")
 
     def get_format_template(self, format_name: str) -> str:
         """
@@ -150,66 +151,9 @@ class PromptManager:
         """
         return self.get(f"formats.{format_name}")
 
-    def get_document_template(self, document_type: str, **kwargs) -> str:
-        """
-        Get a legal document template.
-
-        Args:
-            document_type: The document type (e.g., 'statement_of_claim')
-            **kwargs: Parameters to substitute in the template
-
-        Returns:
-            The formatted document template
-        """
-        return self.get(f"documents.{document_type}", **kwargs)
-
-    def compose_prompt(
-        self, *template_keys: str, include_glob_help: bool = False
-    ) -> str:
-        """
-        Compose multiple templates into a single prompt.
-
-        Args:
-            *template_keys: Variable number of template keys to combine
-            include_glob_help: If True, append the glob help addon (if present)
-
-        Returns:
-            The combined prompt string
-        """
-        parts = []
-        for key in template_keys:
-            try:
-                parts.append(self.get(key))
-            except KeyError:
-                print(f"[WARNING] Template '{key}' not found, skipping")
-
-        # Add glob help section if requested and available
-        if include_glob_help:
-            try:
-                parts.append(self.get("glob_help_section"))
-            except KeyError:
-                pass
-
-        return "\n\n".join(parts)
-
-    def list_templates(self) -> Dict[str, Any]:
-        """
-        List all available templates.
-
-        Returns:
-            Dictionary of all loaded templates
-        """
-        return self.templates.copy()
-
 
 # Global instance for easy import
 PROMPTS = PromptManager()
-
-
-# Convenience functions for backward compatibility
-def get_prompt(key: str, **kwargs) -> str:
-    """Get a prompt template by key."""
-    return PROMPTS.get(key, **kwargs)
 
 
 def get_system_prompt(command: str) -> str:
